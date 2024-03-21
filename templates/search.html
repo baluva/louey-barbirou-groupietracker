@@ -1,0 +1,39 @@
+{{define "search"}}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cryptocurrency Search</title>
+    <link rel="stylesheet" href="../static/css/style.css"> <!-- Assuming you have a CSS file for styling -->
+</head>
+<body>
+        <table class="content-table">
+            <thead>
+                <tr>
+                    <th></th> <!-- For image -->
+                    <th>Symbole</th>
+                    <th>Prix (USD)</th>
+                    <th>24h %</th>
+                    <th>Cap. Marché</th>
+                </tr>
+            </thead>
+            <tbody>
+                {{range .Data}}
+                <tr class="content">
+                    <td>
+                        <!-- Ensure the symbol is lowercase for the image URL -->
+                        <img src="https://assets.coincap.io/assets/icons/{{.Symbol}}@2x.png" alt="{{.Symbol}}">
+                    </td>
+                    <td>{{.Symbol}}</td>
+                    <td>${{printf "%.2f" .Quote.USD.Price}}</td>
+                    <td>{{printf "%.2f%%" .Quote.USD.PercentChange24h}}</td>
+                    <td>${{printf "%.0f" .Quote.USD.MarketCap}}</td>
+                </tr>
+                {{end}}
+            </tbody>
+        </table>
+</body>
+</html>
+
+{{end}}
