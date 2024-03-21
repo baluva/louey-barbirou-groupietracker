@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"projet/backend"
 	"projet/controller"
+	"projet/templates"
 )
 
 func AccueilHandler(w http.ResponseWriter, r *http.Request) {
@@ -18,6 +19,9 @@ func AccueilHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Unsupported request method.", http.StatusMethodNotAllowed)
 	}
 }
+func errorHandler(w http.ResponseWriter, r *http.Request) {
+	templates.Temp.ExecuteTemplate(w, "error", nil)
+}
 
 func Initserv() {
 
@@ -27,10 +31,14 @@ func Initserv() {
 	// Register the new combined handler for /accueil
 	http.HandleFunc("/accueil", AccueilHandler)
 	http.HandleFunc("/search", backend.SearchHandler)
-
+	http.HandleFunc("/favorites", func(w http.ResponseWriter, r *http.Request) {
+		http.ServeFile(w, r, "templates/favorite.html")
+	})
 	addr := ":8000"
 	log.Printf("Server starting on %s", addr)
 	if err := http.ListenAndServe(addr, nil); err != nil {
 		log.Fatalf("Failed to start server: %v", err)
+
 	}
+
 }

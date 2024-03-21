@@ -29,6 +29,25 @@
     </div>
 </header>
 <body>
+    <script>
+        function toggleFavorite(symbol) {
+            // Basculer la classe CSS (par exemple, pour changer la couleur du cœur)
+            const btn = document.querySelector(`button[data-symbol="${symbol}"]`);
+            btn.classList.toggle("favorite");
+        
+            // Envoyer une requête au serveur pour mettre à jour les favoris
+            fetch('/favorite', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ symbol }),
+            })
+            .then(response => response.json())
+            .then(data => console.log(data))
+            .catch((error) => console.error('Error:', error));
+        }
+        </script>
     <table class="content-table">
         <thead>
             <tr>
@@ -50,6 +69,11 @@
                 <td>${{printf "%.2f" .Quote.USD.Price}}</td>
                 <td>{{printf "%.2f%%" .Quote.USD.PercentChange24h}}</td>
                 <td>${{printf "%.0f" .Quote.USD.MarketCap}}</td>
+                <td>
+                    <button class="favorite-btn" data-symbol="{{.Symbol}}" onclick="toggleFavorite('{{.Symbol}}')">
+                        ❤️
+                    </button>
+                </td>
             </tr>
             {{end}}
         </tbody>

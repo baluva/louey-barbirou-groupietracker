@@ -1,0 +1,77 @@
+{{define "error"}}
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Redirection - CoinTracker</title>
+<meta http-equiv="refresh" content="5;url=http://localhost:8000/accueil" />
+<style>
+  body, html {
+    height: 100%;
+    margin: 0;
+    font-family: Arial, sans-serif;
+    background: #0a3f71; /* Fallback for browsers that do not support gradients */
+    background: linear-gradient(135deg, #1a579a 0%,#4d9cd6 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    text-align: center;
+  }
+
+  .error-container {
+    max-width: 600px;
+    padding: 20px;
+  }
+
+  .error-code {
+    font-size: 96px;
+    font-weight: bold;
+    opacity: 0.6;
+  }
+
+  .error-message {
+    font-size: 24px;
+    margin: 20px 0;
+  }
+
+  .error-hint {
+    font-size: 18px;
+    color: #aad3ea;
+  }
+
+  a {
+    color: #82c4e6;
+    text-decoration: none;
+    font-weight: bold;
+  }
+
+  a:hover {
+    color: #ffffff;
+  }
+</style>
+</head>
+<body>
+
+<div class="error-container">
+  <div class="error-code">404</div>
+  <p class="error-message">Vous allez être redirigé dans un moment.</p>
+  <p class="error-hint">
+    Si vous n'êtes pas redirigé, 
+    <a href="http://localhost:8000/accueil">cliquez ici</a>.
+  </p>
+</div>
+
+<script>
+  // Redirection après 5 secondes
+  setTimeout(function(){
+    window.location.href = 'http://localhost:8000/accueil';
+  }, 5000);
+</script>
+
+</body>
+</html>
+
+
+{{end}}

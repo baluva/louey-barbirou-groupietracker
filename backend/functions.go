@@ -4,10 +4,14 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
+	"os"
 	"strings"
 	"text/template"
 )
+
+const favoritesFilePath = "favorite.json"
 
 func Getcoin() (ApiResponse, error) {
 	var apiResponse ApiResponse
@@ -103,4 +107,74 @@ func SearchHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Failed to execute template", http.StatusInternalServerError)
 		return
 	}
+}
+func UpdateFavorites(symbol string) {
+	var favs Favorites
+	file, err := os.ReadFile(favoritesFilePath)
+	if err != nil {
+		if !os.IsNotExist(err) {
+			log.Printf("Error reading favorites file: %v", err)
+			return
+		}
+	} else {
+		if err := json.Unmarshal(file, &favs); err != nil {
+			log.Printf("Error unmarshaling favorites: %v", err)
+			return
+		}
+	}
+
+	// Check if the symbol is already a favorite
+	index := -1
+	for i, fav := range favs.Favorites {
+		if fav == symbol {
+			index = i
+			break
+		}
+	}
+
+	// If the symbol is not found, add it; otherwise, remove it
+	if index == -1 {
+		favs.Favorites = append(favs.Favorites, symbol)
+	} else {
+		favs.Favorites = append(favs.Favorites[:index], favs.Favorites[index+1:]...)
+	}
+
+	// Save the updated favorites
+	updatedFavs, err := json.Marshal(favs)
+	if err != nil {
+		log.Printf("Error marshaling favorites: %v", err)
+		return
+	}
+
+	if err := os.WriteFile(favoritesFilePath, updatedFavs, 0644); err != nil {
+		log.Printf("Error writing favorites file: %v", err)
+		return
+	}
+}
+func FavoritePage(w http.ResponseWriter, r *http.Request) {
+	var favs Favorites
+
+	// Read the favorites
+	file, err := os.ReadFile(favoritesFilePath)
+	if err != nil {
+		http.Error(w, "Failed to read favorites", http.StatusInternalServerError)
+		log.Printf("Error reading favorites file: %v", err)
+		return
+	}
+
+	if err := json.Unmarshal(file, &favs); err != nil {
+		http.Error(w, "Failed to load favorites", http.StatusInternalServerError)
+		log.Printf("Error unmarshaling favorites: %v", err)
+		return
+	}
+
+	// Logic to render the page with the favorites
+	// This could be using template.Execute to generate HTML
+	// For simplicity, just listing the symbols:
+	w.Header().Set("Content-Type", "text/html")
+	fmt.Fprintln(w, "<html><body><h1>Favorite Cryptocurrencies</h1><ul>")
+	for _, symbol := range favs.Favorites {
+		fmt.Fprintf(w, "<li>%s</li>", symbol)
+	}
+	fmt.Fprintln(w, "</ul></body></html>")
 }

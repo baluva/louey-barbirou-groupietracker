@@ -29,3 +29,7 @@ type CryptoData struct {
 type DetailedCryptoResponse struct {
 	Data map[string]CryptoData `json:"data"`
 }
+
+type Favorites struct {
+	Favorites []string `json:"favorites"`
+}

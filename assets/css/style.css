@@ -120,3 +120,12 @@ header {
 .head-right {
     width:50%;
 }
+.favorite-btn {
+    /* Style par défaut du bouton */
+    border: none;
+    background: none;
+}
+
+.favorite {
+    color: red; /* Changez la couleur pour les favoris */
+}
