@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 	"os"
 	"strings"
@@ -13,45 +12,46 @@ import (
 
 const favoritesFilePath = "favorite.json"
 
-func Getcoin() (ApiResponse, error) {
-	var apiResponse ApiResponse
+func GetCoin(numCoins int) (ApiResponse, error) {
+	var coin ApiResponse
 	url := "https://pro-api.coinmarketcap.com/v1/cryptocurrency/listings/latest"
 
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
-		return apiResponse, err
+		return coin, err
 	}
 
 	req.Header.Add("X-CMC_PRO_API_KEY", "569a71f5-374c-4e00-b44a-5a908d012347")
 	req.Header.Add("Accept", "application/json")
 
+	q := req.URL.Query()
+	q.Add("limit", fmt.Sprintf("%d", numCoins)) // Use numCoins as the limit for the number of results
+	req.URL.RawQuery = q.Encode()
+
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
-		return apiResponse, err
+		return coin, err
 	}
 	defer resp.Body.Close()
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return apiResponse, err
+		return coin, err
 	}
 
-	if err := json.Unmarshal(body, &apiResponse); err != nil {
-		return apiResponse, err
+	if err := json.Unmarshal(body, &coin); err != nil {
+		return coin, err
 	}
 
-	// Convert Symbol to lower case for each item in apiResponse.Data
-	for i, item := range apiResponse.Data {
-		apiResponse.Data[i].Symbol = strings.ToLower(item.Symbol)
-	}
-	if len(apiResponse.Data) > 22 {
-		// If so, slice the Data to keep only the top 20
-		apiResponse.Data = apiResponse.Data[:50]
+	// Convert Symbol to lower case for each item in coin.Data
+	for i, item := range coin.Data {
+		coin.Data[i].Symbol = strings.ToLower(item.Symbol)
 	}
 
-	return apiResponse, nil
+	return coin, nil
 }
+
 func SearchHandler(w http.ResponseWriter, r *http.Request) {
 	query := r.URL.Query().Get("Symbol")
 	if query == "" {
@@ -108,73 +108,97 @@ func SearchHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 }
-func UpdateFavorites(symbol string) {
-	var favs Favorites
-	file, err := os.ReadFile(favoritesFilePath)
-	if err != nil {
-		if !os.IsNotExist(err) {
-			log.Printf("Error reading favorites file: %v", err)
-			return
-		}
-	} else {
-		if err := json.Unmarshal(file, &favs); err != nil {
-			log.Printf("Error unmarshaling favorites: %v", err)
-			return
-		}
+func HandleFavorite(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Invalid request method", http.StatusMethodNotAllowed)
+		return
 	}
 
-	// Check if the symbol is already a favorite
-	index := -1
-	for i, fav := range favs.Favorites {
+	// Parse form data
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, "Error parsing form data", http.StatusBadRequest)
+		return
+	}
+
+	// Extract the symbol from the form data
+	symbol := r.FormValue("symbol")
+
+	// Initialize a variable to hold the current list of favorites
+	var favorites Favorite
+
+	// Try to open the existing JSON file
+	file, err := os.Open("favorite.json")
+	if err == nil {
+		// If the file exists, decode its contents into the favorites variable
+		decoder := json.NewDecoder(file)
+		if err := decoder.Decode(&favorites); err != nil {
+			http.Error(w, "Error reading favorite", http.StatusInternalServerError)
+			return
+		}
+		file.Close() // Close the file after reading
+	} else if !os.IsNotExist(err) {
+		// If an error other than "file not found" occurred, report it
+		http.Error(w, "Error opening file", http.StatusInternalServerError)
+		return
+	}
+
+	// Check if the symbol already exists in the list of favorite coins
+	for _, fav := range favorites.FavoriteCoins {
 		if fav == symbol {
-			index = i
-			break
+			// Symbol already exists, no need to add it again
+			http.Redirect(w, r, "/accueil", http.StatusFound)
+			return
 		}
 	}
 
-	// If the symbol is not found, add it; otherwise, remove it
-	if index == -1 {
-		favs.Favorites = append(favs.Favorites, symbol)
-	} else {
-		favs.Favorites = append(favs.Favorites[:index], favs.Favorites[index+1:]...)
-	}
+	// Append the new symbol to the list of favorite coins
+	favorites.FavoriteCoins = append(favorites.FavoriteCoins, symbol)
 
-	// Save the updated favorites
-	updatedFavs, err := json.Marshal(favs)
+	// Open the file again, this time for writing (create it if it doesn't exist)
+	file, err = os.OpenFile("favorite.json", os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0666)
 	if err != nil {
-		log.Printf("Error marshaling favorites: %v", err)
+		http.Error(w, "Error opening file for writing", http.StatusInternalServerError)
+		return
+	}
+	defer file.Close()
+
+	// Encode the updated favorites list to JSON and save it to the file
+	encoder := json.NewEncoder(file)
+	if err := encoder.Encode(favorites); err != nil {
+		http.Error(w, "Error saving favorite", http.StatusInternalServerError)
 		return
 	}
 
-	if err := os.WriteFile(favoritesFilePath, updatedFavs, 0644); err != nil {
-		log.Printf("Error writing favorites file: %v", err)
-		return
-	}
+	// Redirect or inform the user of success
+	http.Redirect(w, r, "/accueil", http.StatusFound)
 }
-func FavoritePage(w http.ResponseWriter, r *http.Request) {
-	var favs Favorites
 
-	// Read the favorites
-	file, err := os.ReadFile(favoritesFilePath)
+func readFavorites() ([]string, error) {
+	// Initialize a variable to hold the current list of favorites
+	var favorites Favorite
+
+	// Open the JSON file
+	file, err := os.Open("favorite.json")
 	if err != nil {
-		http.Error(w, "Failed to read favorites", http.StatusInternalServerError)
-		log.Printf("Error reading favorites file: %v", err)
-		return
+		// If the file does not exist, return an empty slice and no error
+		if os.IsNotExist(err) {
+			return []string{}, nil
+		}
+		// For any other error, return it
+		return nil, err
+	}
+	defer file.Close()
+
+	// Decode the file contents into the favorites struct
+	decoder := json.NewDecoder(file)
+	if err := decoder.Decode(&favorites); err != nil {
+		return nil, err
 	}
 
-	if err := json.Unmarshal(file, &favs); err != nil {
-		http.Error(w, "Failed to load favorites", http.StatusInternalServerError)
-		log.Printf("Error unmarshaling favorites: %v", err)
-		return
-	}
+	// Return the slice of favorite coins
+	return favorites.FavoriteCoins, nil
+}
+func AfficheFavorite(w http.ResponseWriter, r *http.Request) {
+	//favoriteCoins, err := readFavorites()
 
-	// Logic to render the page with the favorites
-	// This could be using template.Execute to generate HTML
-	// For simplicity, just listing the symbols:
-	w.Header().Set("Content-Type", "text/html")
-	fmt.Fprintln(w, "<html><body><h1>Favorite Cryptocurrencies</h1><ul>")
-	for _, symbol := range favs.Favorites {
-		fmt.Fprintf(w, "<li>%s</li>", symbol)
-	}
-	fmt.Fprintln(w, "</ul></body></html>")
 }

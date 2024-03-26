@@ -30,6 +30,11 @@ type DetailedCryptoResponse struct {
 	Data map[string]CryptoData `json:"data"`
 }
 
-type Favorites struct {
-	Favorites []string `json:"favorites"`
+type Favorite struct {
+	FavoriteCoins []string `json:"favoriteCoins"`
+}
+type CoinDataprev struct {
+	ApiResponse []ApiResponse `json:"data"`
+	PageNext    string        `json:"next"`
+	PagePrev    string        `json:"prev"`
 }
