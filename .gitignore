@@ -1,0 +1,21 @@
+# Binaires Go
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+projet
+main
+
+# Tests
+*.test
+*.out
+
+# Variables d'environnement / secrets
+.env
+
+# OS / IDE
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

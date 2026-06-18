@@ -21,7 +21,7 @@ func GetCoin(numCoins int) (ApiResponse, error) {
 		return coin, err
 	}
 
-	req.Header.Add("X-CMC_PRO_API_KEY", "569a71f5-374c-4e00-b44a-5a908d012347")
+	req.Header.Add("X-CMC_PRO_API_KEY", os.Getenv("CMC_PRO_API_KEY"))
 	req.Header.Add("Accept", "application/json")
 
 	q := req.URL.Query()
@@ -68,7 +68,7 @@ func SearchHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	req.Header.Add("X-CMC_PRO_API_KEY", "569a71f5-374c-4e00-b44a-5a908d012347") // Replace with your actual API key
+	req.Header.Add("X-CMC_PRO_API_KEY", os.Getenv("CMC_PRO_API_KEY")) // Replace with your actual API key
 	req.Header.Add("Accept", "application/json")
 
 	client := &http.Client{}
